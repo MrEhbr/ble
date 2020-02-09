@@ -54,6 +54,13 @@ func (conn *Connection) GetDeviceByName(name string) (Device, error) {
 	})
 }
 
+// GetDeviceByAddress finds a Device in the object cache with the given name.
+func (conn *Connection) GetDeviceByAddress(addr string) (Device, error) {
+	return conn.matchDevice(func(device *blob) bool {
+		return device.Address() == addr
+	})
+}
+
 func (device *blob) UUIDs() []string {
 	return device.properties["UUIDs"].Value().([]string)
 }
@@ -64,6 +71,10 @@ func (device *blob) Connected() bool {
 
 func (device *blob) Paired() bool {
 	return device.properties["Paired"].Value().(bool)
+}
+
+func (device *blob) Address() string {
+	return device.properties["Address"].Value().(string)
 }
 
 func (device *blob) Connect() error {
