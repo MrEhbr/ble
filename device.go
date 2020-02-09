@@ -1,7 +1,11 @@
 package ble
 
 import (
+	"context"
+	"fmt"
 	"log"
+
+	"github.com/godbus/dbus"
 )
 
 const (
@@ -22,7 +26,8 @@ type Device interface {
 	Disconnect() error
 	Pair() error
 
-	HandleNotify(handler NotifyHandler) error
+	WatchProperties(context.Context, h func(props Properties)) error
+	ServiceData() map[string]dbus.Variant
 }
 
 func (conn *Connection) matchDevice(matching predicate) (Device, error) {
@@ -79,6 +84,10 @@ func (device *blob) Address() string {
 	return device.properties["Address"].Value().(string)
 }
 
+func (device *blob) ServiceData() map[string]dbus.Variant {
+	return device.properties["ServiceData"].Value().(map[string]dbus.Variant)
+}
+
 func (device *blob) Connect() error {
 	log.Printf("%s: connecting", device.Name())
 	return device.call("Connect")
@@ -87,6 +96,41 @@ func (device *blob) Connect() error {
 func (device *blob) Disconnect() error {
 	log.Printf("%s: disconnecting", device.Name())
 	return device.call("Disconnect")
+}
+
+func (device *blob) WatchProperties(ctx context.Context, h func(props Properties)) error {
+	rule := fmt.Sprintf(
+		"type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='%s'",
+		device.Path(),
+	)
+
+	err := device.conn.addMatch(rule)
+	if err != nil {
+		return err
+	}
+
+	c := make(chan *dbus.Signal, 10)
+	device.conn.bus.Signal(c)
+
+	defer func() {
+		_ = device.conn.removeMatch(rule)
+		device.conn.bus.RemoveSignal(c)
+		close(c)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case sig := <-c:
+			// Reflection used by dbus.Store() requires explicit type here.
+			var changed map[string]dbus.Variant
+			_ = dbus.Store(s.Body[1:2], &changed)
+			h(changed)
+		}
+	}
+
+	return nil
 }
 
 func (device *blob) Pair() error {
