@@ -121,11 +121,11 @@ func (device *blob) WatchProperties(ctx context.Context, h func(props Properties
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case sig := <-c:
 			// Reflection used by dbus.Store() requires explicit type here.
 			var changed map[string]dbus.Variant
-			_ = dbus.Store(s.Body[1:2], &changed)
+			_ = dbus.Store(sig.Body[1:2], &changed)
 			h(changed)
 		}
 	}
