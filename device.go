@@ -129,8 +129,6 @@ func (device *blob) WatchProperties(ctx context.Context, h func(props Properties
 			h(changed)
 		}
 	}
-
-	return nil
 }
 
 func (device *blob) Pair() error {
