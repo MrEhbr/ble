@@ -26,7 +26,7 @@ type Device interface {
 	Disconnect() error
 	Pair() error
 
-	WatchProperties(context.Context, h func(props Properties)) error
+	WatchProperties(context.Context, func(props Properties)) error
 	ServiceData() map[string]dbus.Variant
 }
 
