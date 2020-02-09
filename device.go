@@ -21,6 +21,8 @@ type Device interface {
 	Connect() error
 	Disconnect() error
 	Pair() error
+
+	HandleNotify(handler NotifyHandler) error
 }
 
 func (conn *Connection) matchDevice(matching predicate) (Device, error) {
